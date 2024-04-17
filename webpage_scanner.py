@@ -3,7 +3,7 @@ import socket
 import random
 import time
 import requests
-import subprocess  # Import the subprocess module
+import subprocess
 import whois
 
 def get_url():
@@ -11,12 +11,11 @@ def get_url():
     return url
 
 def validate_url(url):
-    # Regular expression pattern for URL validation
     url_pattern = re.compile(
-        r'^(?:http|https)://'  # Scheme
-        r'(?:[\w-]+\.)*[\w-]+'  # Domain name
-        r'(?:\:\d+)?'  # Optional port
-        r'(?:\/\S*)?$'  # Optional path
+        r'^(?:http|https)://'
+        r'(?:[\w-]+\.)*[\w-]+'
+        r'(?:\:\d+)?'
+        r'(?:\/\S*)?$'
     )
     if not re.match(url_pattern, url):
         print("Invalid URL format.")
@@ -48,25 +47,21 @@ def get_geolocation(ip_address):
         return "Error"
 
 def get_random_user_agent():
-    # List of user-agent strings to choose from
     USER_AGENT_STRINGS = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.9999.999 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:99.0) Gecko/20100101 Firefox/99.0",
         "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.9999.999 Safari/537.36 OPR/99.0.9999.999",
-        # Add more user-agent strings as needed
     ]
     return random.choice(USER_AGENT_STRINGS)
 
 def get_whois_info(ip_address):
     try:
-        # Perform WHOIS lookup
         domain = whois.whois(ip_address)
         return str(domain)
     except Exception as e:
         return f"Error performing WHOIS lookup: {e}"
 
 def scan_all_ports(url, protocols):
-    # Extract host from the URL
     try:
         host = re.search(r'(?<=://)(.*?)(?=/|$)', url).group(1)
     except AttributeError:
@@ -79,7 +74,6 @@ def scan_all_ports(url, protocols):
         geolocation = get_geolocation(ip_address)
         print(f"Geolocation: {geolocation}")
         
-        # Reverse DNS Lookup
         try:
             reverse_dns = socket.gethostbyaddr(ip_address)[0]
             print(f"Reverse DNS Lookup: {reverse_dns}")
@@ -88,7 +82,6 @@ def scan_all_ports(url, protocols):
         except Exception as e:
             print(f"Error performing Reverse DNS Lookup: {e}")
 
-        # WHOIS Lookup
         whois_info = get_whois_info(ip_address)
         print("WHOIS Lookup:")
         print(whois_info)
@@ -96,70 +89,61 @@ def scan_all_ports(url, protocols):
     print(f"Scanning ports for {url} using automatic mode:")
     
     open_ports = []
-    # Attempt to connect to ports for specified protocols
     for protocol in protocols:
-        # Get ports for the current protocol
         ports = get_ports_for_protocol(protocol)
         
-        # Scan ports for the current protocol
         for p in ports:
-            # Initialize socket
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(1)  # Set socket timeout to 1 second
+            s.settimeout(1)
 
             try:
-                # Set random user-agent string for each request
                 headers = {"User-Agent": get_random_user_agent()}
                 
                 s.connect((host, p))
                 print(f"Port {p} [{protocol}] is open on {host}")
                 try:
-                    banner = s.recv(4096).decode('utf-8')  # Increased buffer size
+                    banner = s.recv(4096).decode('utf-8')
                     service_info = parse_banner(banner)
                     open_ports.append((p, protocol) + service_info)
                 except ConnectionResetError:
                     print(f"Failed to retrieve banner for port {p}.")
             except (socket.timeout, ConnectionRefusedError):
-                pass  # Port is closed, so no need to print a message
+                pass
             except socket.gaierror:
                 print("Error resolving host.")
             finally:
-                s.close()  # Close the socket after each connection attempt
+                s.close()
                 
-            # Introduce random delay between scan requests
-            delay = random.uniform(0.5, 2.0)  # Random delay between 0.5 and 2.0 seconds
-            time.sleep(delay)  # Sleep for the random delay before the next scan request
+            delay = random.uniform(0.5, 2.0)
+            time.sleep(delay)
     
     return open_ports
 
 def parse_banner(banner):
-    # Initialize default values
     service_name = "Unknown"
     service_version = "Unknown"
     
-    # Example: Parse SSH banner to extract service name and version
     if "SSH" in banner:
         service_name = "SSH"
         match = re.search(r'SSH-(\S+)', banner)
         if match:
             service_version = match.group(1)
     
-    # Return the service name, version, and full banner text
     return service_name, service_version, banner.strip()
 
 def get_ports_for_protocol(protocol):
     protocol_ports = {
-        "FTP": [21, 2121],  # Standard and non-standard FTP ports
+        "FTP": [21, 2121],
         "SSH": [22],
         "DNS": [53],
         "DHCP": [67, 68],
-        "HTTP": [80, 8080],  # Standard and non-standard HTTP ports
+        "HTTP": [80, 8080],
         "SMTP": [25],
         "POP": [110],
-        "HTTPS": [443, 8443],  # Standard and non-standard HTTPS ports
+        "HTTPS": [443, 8443],
         "TELNET": [23],
         "GOPHER": [70],
-        "IP": [],  # Excluding IP from all open port scanning
+        "IP": [],  # Add IP to manual mode
         "LDAP": [389],
         "SNMP": [161],
         "RDP": [3389],
@@ -168,11 +152,85 @@ def get_ports_for_protocol(protocol):
         "SMB": [445],
         "MYSQL": [3306],
         "POSTGRESQL": [5432],
-        "FTPS": [990, 2121],  # Standard and non-standard FTPS ports
-        "TCP": list(range(1, 1024)),  # Well-known TCP ports
-        "UDP": list(range(1, 1024))   # Well-known UDP ports
+        "FTPS": [990, 2121],
+        "TCP": list(range(1, 1024)),  # Add TCP to manual mode
+        "UDP": list(range(1, 1024)),  # Add UDP to manual mode
     }
     return protocol_ports.get(protocol, [])
+
+def scan_protocol_ports(url, protocol):
+    port_range = get_port_range(protocol)
+    if port_range is None:
+        return
+    
+    print(f"Enter starting port number for {protocol} [{port_range}]: ", end="")
+    start_port = int(input())
+    print(f"Enter ending port number for {protocol}: ", end="")
+    end_port = int(input())
+    
+    if start_port < port_range[0] or end_port > port_range[1] or end_port < start_port:
+        print(f"Invalid port range. Port range for {protocol}: {port_range[0]}-{port_range[1]}")
+        return
+    
+    print(f"Scanning ports for {url} using manual mode for protocol {protocol}:")
+    ports_to_scan = list(range(start_port, end_port + 1))
+    open_ports = []
+    host = re.search(r'(?<=://)(.*?)(?=/|$)', url).group(1)
+    for port in ports_to_scan:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1)
+
+        try:
+            s.connect((host, port))
+            print(f"Port {port} [{protocol}] is open on {host}")
+            try:
+                banner = s.recv(4096).decode('utf-8')
+                service_info = parse_banner(banner)
+                open_ports.append((port, protocol) + service_info)
+            except ConnectionResetError:
+                print(f"Failed to retrieve banner for port {port}.")
+        except (socket.timeout, ConnectionRefusedError):
+            pass
+        except socket.gaierror:
+            print("Error resolving host.")
+        finally:
+            s.close()
+                
+        delay = random.uniform(0.5, 2.0)
+        time.sleep(delay)
+
+    if open_ports:
+        print(f"Open ports for {url} using manual mode for protocol {protocol}:")
+        for port_info in open_ports:
+            port, protocol_name, service_name, service_version, banner = port_info
+            print(f"Port {port} [{protocol_name}] is open: {service_name} {service_version} ({banner})")
+
+def get_port_range(protocol):
+    port_ranges = {
+        "FTP": (21, 2121),
+        "SSH": (22, 22),
+        "DNS": (53, 53),
+        "DHCP": (67, 68),
+        "HTTP": (80, 8080),
+        "SMTP": (25, 25),
+        "POP": (110, 110),
+        "HTTPS": (443, 8443),
+        "TELNET": (23, 23),
+        "GOPHER": (70, 70),
+        "IP": (0, 65535),  # Entire port range for IP
+        "LDAP": (389, 389),
+        "SNMP": (161, 161),
+        "RDP": (3389, 3389),
+        "IMAP": (143, 143),
+        "NTP": (123, 123),
+        "SMB": (445, 445),
+        "MYSQL": (3306, 3306),
+        "POSTGRESQL": (5432, 5432),
+        "FTPS": (990, 2121),
+        "TCP": (1, 1023),  # Well-known TCP ports
+        "UDP": (1, 1023),  # Well-known UDP ports
+    }
+    return port_ranges.get(protocol)
 
 def main():
     url = get_url()
@@ -188,7 +246,7 @@ def main():
         open_ports = scan_all_ports(url, protocols_to_scan)
         if open_ports:
             print(f"Open ports for {url}:")
-            unique_ips = set()  # To store unique IP addresses
+            unique_ips = set()
             for port_info in open_ports:
                 port, protocol_name, service_name, service_version, banner = port_info
                 print(f"Port {port} [{protocol_name}] is open: {service_name} {service_version} ({banner})")
@@ -197,7 +255,7 @@ def main():
             for ip in unique_ips:
                 print(ip)
     elif scan_all == "N":
-        protocol = input("Enter the network protocol (FTP, SSH, DNS, DHCP, HTTP, SMTP, POP, HTTPS, TELNET, GOPHER, LDAP, SNMP, RDP, IMAP, NTP, SMB, MYSQL, POSTGRESQL, FTPS): ").strip().upper()
+        protocol = input("Enter the network protocol (FTP, SSH, DNS, DHCP, HTTP, SMTP, POP, HTTPS, TELNET, GOPHER, LDAP, SNMP, RDP, IMAP, NTP, SMB, MYSQL, POSTGRESQL, FTPS, TCP, UDP, IP): ").strip().upper()
         if not validate_protocol(protocol):
             return
         scan_protocol_ports(url, protocol)
@@ -205,7 +263,7 @@ def main():
         print("Invalid choice. Exiting.")
 
 def validate_protocol(protocol):
-    valid_protocols = ["FTP", "SSH", "DNS", "DHCP", "HTTP", "SMTP", "POP", "HTTPS", "TELNET", "GOPHER", "LDAP", "SNMP", "RDP", "IMAP", "NTP", "SMB", "MYSQL", "POSTGRESQL", "FTPS", "TCP", "UDP"]
+    valid_protocols = ["FTP", "SSH", "DNS", "DHCP", "HTTP", "SMTP", "POP", "HTTPS", "TELNET", "GOPHER", "LDAP", "SNMP", "RDP", "IMAP", "NTP", "SMB", "MYSQL", "POSTGRESQL", "FTPS", "TCP", "UDP", "IP"]
     if protocol not in valid_protocols:
         print("Invalid protocol.")
         return False
