@@ -1,0 +1,16 @@
+URL Validation: Validates the format of the input URL.
+IP Address Resolution: Resolves the IP address of the provided URL.
+Geolocation: Fetches geolocation information based on the IP address using the ipinfo.io API.
+Reverse DNS Lookup: Retrieves the reverse DNS entry for the IP address.
+WHOIS Lookup: Performs a WHOIS lookup for the IP address.
+Port Scanning: Scans for open ports on the specified URL using various protocols.
+Security: User-Agent Randomization: Uses a random user-agent string for each request.
+Parsing Banners: Attempts to parse banners received from open ports.
+Protocol Selection: Allows the user to specify whether to scan all open ports or select a specific protocol.
+Validating Protocols: Ensures that the specified protocol is valid.
+Concurrency: Implement asynchronous scanning using Python's asyncio library to maximize speed and efficiency.
+
+
+
+
+This script provides a comprehensive overview of the services running on a given website, including potential security risks associated with open ports and services. It's important to note that running port scans and WHOIS lookups may be subject to legal restrictions and should only be performed with proper authorization. Additionally, the accuracy of geolocation and WHOIS information may vary based on the availability and accuracy of the underlying data sources.
